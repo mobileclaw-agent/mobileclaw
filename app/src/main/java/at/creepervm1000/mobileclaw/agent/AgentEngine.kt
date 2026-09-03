@@ -18,8 +18,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
+import at.creepervm1000.mobileclaw.tools.err
+import at.creepervm1000.mobileclaw.tools.ok
 import java.io.File
 
 sealed class AgentStatus {
@@ -184,21 +190,26 @@ class AgentEngine(
 
     private suspend fun executeTool(name: String, rawArgs: String): String {
         val tool = ToolRegistry.find(name)
-        // Listing the real names turns a dead end into something the model can correct on its
-        // next step, instead of retrying the same wrong name.
-            ?: return """{"error":"Unknown tool: $name","available_tools":""" +
-                AgentJson.encodeToString(ToolRegistry.all.map { it.name }) + "}"
+            // Listing the real names turns a dead end into something the model can correct on its
+            // next step, instead of retrying the same wrong name.
+            ?: return ok {
+                put("error", "Unknown tool: $name")
+                put(
+                    "available_tools",
+                    buildJsonArray { ToolRegistry.all.forEach { add(JsonPrimitive(it.name)) } },
+                )
+            }
 
         val args: JsonObject = runCatching {
             AgentJson.parseToJsonElement(rawArgs.ifBlank { "{}" }).jsonObject
         }.getOrElse {
-            return """{"error":"Could not parse arguments as JSON: ${it.message}"}"""
+            return err("Could not parse arguments as JSON: ${it.message}")
         }
 
         return try {
             tool.run(args, toolContext)
         } catch (e: Exception) {
-            """{"error":"Tool '$name' threw: ${e.message?.replace("\"", "'")}"}"""
+            err("Tool '$name' threw: ${e.message?.replace("\"", "'")}")
         }
     }
 

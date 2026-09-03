@@ -6,9 +6,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.net.URLDecoder
@@ -16,6 +21,83 @@ import java.net.URLDecoder
 private const val BROWSER_UA =
     "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/126.0.0.0 Mobile Safari/537.36"
+
+private val HTTP_METHODS = setOf("GET", "POST", "PUT", "PATCH", "DELETE")
+
+/**
+ * Raw HTTP for endpoints where [WebFetch]'s readability extraction would mangle the payload:
+ * JSON APIs, RSS, status endpoints. Returns the body verbatim instead of parsed text.
+ */
+object HttpRequest : AgentTool {
+    override val name = "http_request"
+    override val description =
+        "Make a direct HTTP request to any http(s) URL and get the raw response body back — " +
+            "JSON, XML, RSS or plain text, unmodified. Use this for APIs and machine-readable " +
+            "endpoints; for reading a normal web page as a human would, prefer web_fetch. " +
+            "Never put secrets (passwords, API keys) in the URL or body of a request to a " +
+            "host you don't trust."
+    override val schema = objectSchema {
+        string("url", "Absolute http:// or https:// URL.", required = true)
+        string("method", "HTTP method.", enum = HTTP_METHODS.toList())
+        stringMap("headers", "Request headers as an object of name to value, e.g. {\"Authorization\":\"Bearer …\"}.")
+        string("body", "Request body for POST/PUT/PATCH, sent verbatim. Defaults to Content-Type application/json unless you set your own.")
+        integer("max_chars", "Maximum characters of the response body to return. Default 6000, max 20000.")
+    }
+
+    override suspend fun run(args: JsonObject, ctx: ToolContext): String {
+        val rawUrl = args.str("url")?.trim()?.takeIf { it.isNotBlank() }
+            ?: return err("Missing required argument: url")
+        if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+            return err("Only http:// and https:// URLs are supported.")
+        }
+
+        val method = args.str("method", "GET").trim().uppercase()
+            .let { if (it in HTTP_METHODS) it else "GET" }
+        val maxChars = args.int("max_chars", 6000).coerceIn(500, 20_000)
+        val headers = args["headers"]?.jsonObject?.mapNotNull { (name, value) ->
+            value.jsonPrimitive.contentOrNull?.let { name to it }
+        }.orEmpty()
+        val body = args.str("body")?.takeIf { it.isNotBlank() }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val builder = Request.Builder().url(rawUrl)
+                headers.forEach { (name, value) ->
+                    // With a body, OkHttp takes Content-Type from the body itself.
+                    if (body == null || !name.equals("Content-Type", ignoreCase = true)) {
+                        builder.addHeader(name, value)
+                    }
+                }
+
+                if (body != null) {
+                    val contentType = headers
+                        .firstOrNull { it.first.equals("Content-Type", ignoreCase = true) }
+                        ?.second ?: "application/json"
+                    builder.method(method, body.toRequestBody(contentType.toMediaType()))
+                } else if (method in setOf("POST", "PUT", "PATCH")) {
+                    // OkHttp refuses these methods without a request body.
+                    builder.method(method, ByteArray(0).toRequestBody())
+                } else {
+                    builder.method(method, null)
+                }
+
+                Http.client.newCall(builder.build()).execute().use { response ->
+                    val responseBody = response.body?.string().orEmpty()
+                    ok {
+                        put("url", rawUrl)
+                        put("method", method)
+                        put("status", response.code)
+                        put("reason", response.message)
+                        put("content_type", response.header("Content-Type").orEmpty())
+                        put("body", responseBody.truncate(maxChars))
+                    }
+                }
+            } catch (e: Exception) {
+                err("Request failed: ${e.message}")
+            }
+        }
+    }
+}
 
 object WebSearch : AgentTool {
     override val name = "web_search"

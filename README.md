@@ -4,8 +4,8 @@
 
 An AI agent that lives on an Android phone. It talks to any OpenAI-compatible or
 Anthropic-compatible API, and it has real tools: it can read the device's state, run shell
-commands, reach for elevated privileges through Shizuku, search the web, notify you, and
-schedule itself to wake up.
+commands, reach for elevated privileges through Shizuku, search the web and call APIs, notify
+you or speak out loud, keep its own files, and schedule itself to wake up.
 
 It also writes its own `IDENTITY.md` and `MEMORY.md` — including its own name. `MobileClaw`
 is only the default.
@@ -47,15 +47,22 @@ base URL at them and set the model name. Then grant notification permission and 
 **Clipboard** — `set_clipboard`, `get_clipboard`
 
 **Connectivity** — `get_connection_method` (wlan / mobile_net / ethernet / vpn, metered,
-validated), `is_hotspot_running`
+validated), `get_local_ips`, `is_hotspot_running`
 
 **Power** — `get_battery_info`
+
+**Screen & audio** — `get_screen_state`, `get_volumes`, `set_media_volume`, `vibrate`
+
+**Speech** — `speak` (text-to-speech, with language/pitch/rate control)
+
+**Files** — `list_files`, `read_file`, `write_file`, `delete_file` — the agent's own durable
+scratch space, jailed to the app's private storage
 
 **Shell** — `run_cmd` (unprivileged, inside the app sandbox), `get_shizuku_status`,
 `connect_shizuku`, `run_shizuku_cmd` (elevated)
 
 **Web** — `web_search` (DuckDuckGo HTML frontend, with the lite frontend as fallback),
-`web_fetch`
+`web_fetch`, `http_request` (raw HTTP for APIs and other machine-readable endpoints)
 
 **Notifications** — `check_notification_permission`, `request_notification_permission`,
 `send_notification`

@@ -8,6 +8,7 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.put
 import java.net.NetworkInterface
@@ -103,6 +104,40 @@ object GetConnectionMethod : AgentTool {
         @Suppress("DEPRECATION")
         wifi.connectionInfo.linkSpeed
     }.getOrDefault(-1)
+}
+
+object GetLocalIps : AgentTool {
+    override val name = "get_local_ips"
+    override val description =
+        "List this device's local network addresses per interface (wlan0 is usually Wi-Fi, " +
+            "swlan/ap the hotspot, rndis/usb tethering). Use this when you need to tell the " +
+            "user or a LAN service which IP the phone is reachable on. Public IPs are NOT " +
+            "here — use a web service via http_request for that."
+    override val schema = NO_ARGS
+
+    override suspend fun run(args: JsonObject, ctx: ToolContext): String {
+        val interfaces = runCatching { NetworkInterface.getNetworkInterfaces().toList() }
+            .getOrDefault(emptyList())
+
+        return ok {
+            put("interfaces", buildJsonArray {
+                interfaces.filter { it.isUp }.forEach { iface ->
+                    addJsonObject {
+                        put("name", iface.name)
+                        put("loopback", iface.isLoopback)
+                        put("addresses", buildJsonArray {
+                            iface.inetAddresses.toList().forEach { addr ->
+                                addJsonObject {
+                                    put("address", addr.hostAddress ?: "")
+                                    put("version", if (addr is java.net.Inet4Address) "ipv4" else "ipv6")
+                                }
+                            }
+                        })
+                    }
+                }
+            })
+        }
+    }
 }
 
 object IsHotspotRunning : AgentTool {

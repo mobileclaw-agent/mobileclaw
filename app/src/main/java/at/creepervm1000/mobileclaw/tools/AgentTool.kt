@@ -75,6 +75,24 @@ class PropsBuilder {
         }
         if (required) this.required += name
     }
+
+    fun number(name: String, description: String, required: Boolean = false) {
+        entries += name to buildJsonObject {
+            put("type", "number")
+            put("description", description)
+        }
+        if (required) this.required += name
+    }
+
+    /** A free-form map of strings — used for things like request headers. */
+    fun stringMap(name: String, description: String, required: Boolean = false) {
+        entries += name to buildJsonObject {
+            put("type", "object")
+            put("description", description)
+            put("additionalProperties", buildJsonObject { put("type", "string") })
+        }
+        if (required) this.required += name
+    }
 }
 
 fun objectSchema(block: PropsBuilder.() -> Unit): JsonObject {
@@ -99,6 +117,11 @@ fun JsonObject.str(key: String, default: String): String = str(key) ?: default
 fun JsonObject.int(key: String, default: Int): Int {
     val prim = this[key]?.jsonPrimitive ?: return default
     return prim.intOrNull ?: prim.doubleOrNull?.toInt() ?: prim.contentOrNull?.trim()?.toIntOrNull() ?: default
+}
+
+fun JsonObject.double(key: String, default: Double): Double {
+    val prim = this[key]?.jsonPrimitive ?: return default
+    return prim.doubleOrNull ?: prim.contentOrNull?.trim()?.toDoubleOrNull() ?: default
 }
 
 fun JsonObject.bool(key: String, default: Boolean): Boolean {

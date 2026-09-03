@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-一个运行在 Android 手机上的 AI 代理。它可以连接任何兼容 OpenAI 或 Anthropic 的 API，并拥有真正的工具能力：读取设备状态、运行 Shell 命令、通过 Shizuku 获取提权、搜索网页、发送通知，甚至定时唤醒自己。
+一个运行在 Android 手机上的 AI 代理。它可以连接任何兼容 OpenAI 或 Anthropic 的 API，并拥有真正的工具能力：读取设备状态、运行 Shell 命令、通过 Shizuku 获取提权、搜索网页和调用 API、发送通知或开口说话、保存自己的文件，甚至定时唤醒自己。
 
 它还会自己编写 `IDENTITY.md` 和 `MEMORY.md`——包括它自己的名字。`MobileClaw` 只是默认名称。
 
@@ -39,13 +39,19 @@ OpenAI 路径兼容 OpenRouter、Groq、Together、Ollama、LM Studio 和 vLLM�
 
 **剪贴板** — `set_clipboard`、`get_clipboard`
 
-**网络** — `get_connection_method`（wlan / mobile_net / ethernet / vpn，是否计费，是否验证）、`is_hotspot_running`
+**网络** — `get_connection_method`（wlan / mobile_net / ethernet / vpn，是否计费，是否验证）、`get_local_ips`、`is_hotspot_running`
 
 **电源** — `get_battery_info`
 
+**屏幕与音频** — `get_screen_state`、`get_volumes`、`set_media_volume`、`vibrate`
+
+**语音** — `speak`（文字转语音，可指定语言、音调、语速）
+
+**文件** — `list_files`、`read_file`、`write_file`、`delete_file` — 代理自己的持久工作区，严格限制在应用私有存储内
+
 **Shell** — `run_cmd`（非特权，在应用沙箱内运行）、`get_shizuku_status`、`connect_shizuku`、`run_shizuku_cmd`（提权命令）
 
-**网页** — `web_search`（DuckDuckGo HTML 前端，lite 前端作为备选）、`web_fetch`
+**网页** — `web_search`（DuckDuckGo HTML 前端，lite 前端作为备选）、`web_fetch`、`http_request`（面向 API 等机器可读端点的原始 HTTP 请求）
 
 **通知** — `check_notification_permission`、`request_notification_permission`、`send_notification`
 
