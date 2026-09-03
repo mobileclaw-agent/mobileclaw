@@ -1,3 +1,5 @@
+[中文文档](README_zh.md) | [Français](README_fr.md) | [Deutsch](README_de.md) | [Español](README_es.md) | [日本語](README_ja.md) | [한국어](README_ko.md) | [Português](README_pt.md) | [Русский](README_ru.md)
+
 # MobileClaw
 
 An AI agent that lives on an Android phone. It talks to any OpenAI-compatible or
@@ -39,6 +41,10 @@ base URL at them and set the model name. Then grant notification permission and 
 
 **Device** — `get_android_version`, `get_build_version`, `get_device_name`, `get_device_model`,
 `get_system_stats`, `get_time`, `list_installed_apps`
+
+**App actions** — `open_url`, `launch_app`, `open_app_settings`
+
+**Clipboard** — `set_clipboard`, `get_clipboard`
 
 **Connectivity** — `get_connection_method` (wlan / mobile_net / ethernet / vpn, metered,
 validated), `is_hotspot_running`
