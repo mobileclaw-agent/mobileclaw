@@ -1,4 +1,4 @@
-[中文文档](README_zh.md)
+[中文文档](README_zh.md) | [Français](README_fr.md) | [Deutsch](README_de.md) | [Español](README_es.md) | [日本語](README_ja.md) | [한국어](README_ko.md) | [Português](README_pt.md) | [Русский](README_ru.md)
 
 # MobileClaw
 

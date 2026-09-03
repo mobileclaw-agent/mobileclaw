@@ -1,6 +1,6 @@
 # MobileClaw
 
-[English](README.md)
+[中文文档](README_zh.md) | [Français](README_fr.md) | [Deutsch](README_de.md) | [Español](README_es.md) | [日本語](README_ja.md) | [한국어](README_ko.md) | [Português](README_pt.md) | [Русский](README_ru.md)
 
 一个运行在 Android 手机上的 AI 代理。它可以连接任何兼容 OpenAI 或 Anthropic 的 API，并拥有真正的工具能力：读取设备状态、运行 Shell 命令、通过 Shizuku 获取提权、搜索网页、发送通知，甚至定时唤醒自己。
 
