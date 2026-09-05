@@ -21,9 +21,22 @@ object ToolRegistry {
         GetClipboard,
         // Connectivity
         GetConnectionMethod,
+        GetLocalIps,
         IsHotspotRunning,
         // Power
         GetBatteryInfo,
+        // Screen & audio
+        GetScreenState,
+        GetVolumes,
+        SetMediaVolume,
+        Vibrate,
+        // Speech
+        Speak,
+        // Files
+        ListFiles,
+        ReadFile,
+        WriteFile,
+        DeleteFile,
         // Shell
         RunCmd,
         GetShizukuStatus,
@@ -32,6 +45,7 @@ object ToolRegistry {
         // Web
         WebSearch,
         WebFetch,
+        HttpRequest,
         // Notifications
         CheckNotificationPermission,
         RequestNotificationPermission,

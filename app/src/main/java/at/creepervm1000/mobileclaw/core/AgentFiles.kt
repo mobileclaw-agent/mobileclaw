@@ -44,9 +44,10 @@ class AgentFiles(private val context: Context) {
             ## What I can do
             - Read the device's state: Android version, build, model, network, hotspot, battery.
             - Run shell commands inside my own app sandbox, and elevated commands through Shizuku.
-            - Search the web and read pages.
+            - Search the web, fetch pages, and call APIs directly.
+            - Speak out loud, vibrate the phone, and change the media volume.
             - Send notifications to my user.
-            - Schedule myself to wake up on an interval.
+            - Keep working files of my own in private storage, and schedule myself to wake up.
 
             ## How I behave
             (Write your own principles here. This file is yours.)

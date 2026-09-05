@@ -3,8 +3,10 @@ package at.creepervm1000.mobileclaw.llm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -127,6 +129,21 @@ class OpenAiClient(private val config: LlmConfig) : LlmClient {
         }
     }
 
+    /**
+     * `content` is normally a string, but some OpenAI-compatible servers send an array of
+     * parts ([{type: "text", text: …}]) or null alongside tool calls; both shapes must work.
+     */
+    private fun contentText(content: JsonElement?): String = when (content) {
+        null, is JsonNull -> ""
+        is JsonPrimitive -> content.contentOrNull.orEmpty()
+        is JsonArray -> content.joinToString("") { part ->
+            runCatching {
+                part.jsonObject["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            }.getOrDefault("")
+        }
+        else -> ""
+    }
+
     private fun parseReply(raw: String): LlmReply {
         val root = try {
             AgentJson.parseToJsonElement(raw).jsonObject
@@ -143,7 +160,7 @@ class OpenAiClient(private val config: LlmConfig) : LlmClient {
             ?.jsonObject?.get("message")?.jsonObject
             ?: throw LlmException("No choices in response: ${raw.take(400)}")
 
-        val text = message["content"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val text = contentText(message["content"])
 
         val calls = (message["tool_calls"]?.jsonArray ?: JsonArray(emptyList()))
             .mapIndexedNotNull { index, element ->
@@ -235,26 +252,32 @@ class AnthropicClient(private val config: LlmConfig) : LlmClient {
                 }
 
                 is Msg.Assistant -> {
-                    addJsonObject {
-                        put("role", "assistant")
-                        put("content", buildJsonArray {
-                            if (msg.text.isNotBlank()) {
-                                addJsonObject {
-                                    put("type", "text")
-                                    put("text", msg.text)
+                    // Anthropic rejects a message whose content array is empty; an assistant
+                    // turn with neither text nor tool calls carries nothing, so drop it.
+                    if (msg.text.isBlank() && msg.toolCalls.isEmpty()) {
+                        index++
+                    } else {
+                        addJsonObject {
+                            put("role", "assistant")
+                            put("content", buildJsonArray {
+                                if (msg.text.isNotBlank()) {
+                                    addJsonObject {
+                                        put("type", "text")
+                                        put("text", msg.text)
+                                    }
                                 }
-                            }
-                            msg.toolCalls.forEach { call ->
-                                addJsonObject {
-                                    put("type", "tool_use")
-                                    put("id", call.id)
-                                    put("name", call.name)
-                                    put("input", parseArgs(call.arguments))
+                                msg.toolCalls.forEach { call ->
+                                    addJsonObject {
+                                        put("type", "tool_use")
+                                        put("id", call.id)
+                                        put("name", call.name)
+                                        put("input", parseArgs(call.arguments))
+                                    }
                                 }
-                            }
-                        })
+                            })
+                        }
+                        index++
                     }
-                    index++
                 }
 
                 is Msg.ToolResult -> {

@@ -115,7 +115,7 @@ object GetSystemStats : AgentTool {
     override val name = "get_system_stats"
     override val description =
         "Get live system resource usage: RAM total/available/low-memory state, internal storage " +
-            "total/free, CPU core count and how long the device has been awake since boot."
+            "total/free, CPU core count and how long since boot (including time asleep)."
     override val schema = NO_ARGS
 
     override suspend fun run(args: JsonObject, ctx: ToolContext): String {
