@@ -115,14 +115,14 @@ object SetTimer : AgentTool {
             "installed, so it keeps running even if MobileClaw is closed. skip_ui=true (the " +
             "default) starts it silently; skip_ui=false opens the clock app's timer screen first."
     override val schema = objectSchema {
-        integer("seconds", "Timer duration in seconds. Must be positive.", required = true)
+        integer("seconds", "Timer duration in seconds, 1 to 86400 (24 hours) — the range AlarmClock supports.", required = true)
         string("label", "A short label for the timer, e.g. \"Pasta\".")
         boolean("skip_ui", "Start it silently without opening the clock app. Default true.")
     }
 
     override suspend fun run(args: JsonObject, ctx: ToolContext): String {
         val seconds = args.int("seconds", -1)
-        if (seconds <= 0) return err("seconds must be a positive number.")
+        if (seconds !in 1..86_400) return err("seconds must be between 1 and 86400 (24 hours).")
 
         val skipUi = args.bool("skip_ui", true)
         val label = args.str("label")
