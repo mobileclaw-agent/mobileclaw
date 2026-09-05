@@ -25,6 +25,18 @@ private const val BROWSER_UA =
 private val HTTP_METHODS = setOf("GET", "POST", "PUT", "PATCH", "DELETE")
 
 /**
+ * Same timeouts as [Http.client], but redirects are not followed: every hop of an
+ * http_request passes the loopback guard again, and a 3xx is handed back with its
+ * Location header so following it is the model's explicit, guarded decision.
+ */
+private val noRedirectClient by lazy {
+    Http.client.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
+}
+
+/**
  * Raw HTTP for endpoints where [WebFetch]'s readability extraction would mangle the payload:
  * JSON APIs, RSS, status endpoints. Returns the body verbatim instead of parsed text.
  */
@@ -34,8 +46,9 @@ object HttpRequest : AgentTool {
         "Make a direct HTTP request to any http(s) URL and get the raw response body back — " +
             "JSON, XML, RSS or plain text, unmodified. Use this for APIs and machine-readable " +
             "endpoints; for reading a normal web page as a human would, prefer web_fetch. " +
-            "Never put secrets (passwords, API keys) in the URL or body of a request to a " +
-            "host you don't trust."
+            "Redirects are NOT followed automatically: a 3xx comes back with its location " +
+            "header, and you decide whether to request it. Never put secrets (passwords, API " +
+            "keys) in the URL or body of a request to a host you don't trust."
     override val schema = objectSchema {
         string("url", "Absolute http:// or https:// URL.", required = true)
         string("method", "HTTP method.", enum = HTTP_METHODS.toList())
@@ -100,7 +113,7 @@ object HttpRequest : AgentTool {
                     )
                 }
 
-                Http.client.newCall(request).execute().use { response ->
+                noRedirectClient.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string().orEmpty()
                     ok {
                         put("url", rawUrl)
@@ -108,7 +121,15 @@ object HttpRequest : AgentTool {
                         put("status", response.code)
                         put("reason", response.message)
                         put("content_type", response.header("Content-Type").orEmpty())
+                        response.header("Location")?.let { put("location", it) }
                         put("body", responseBody.truncate(maxChars))
+                        if (response.code in 300..399) {
+                            put(
+                                "note",
+                                "Redirects are not followed automatically. If this redirect " +
+                                    "is expected, call http_request again with the location URL.",
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
