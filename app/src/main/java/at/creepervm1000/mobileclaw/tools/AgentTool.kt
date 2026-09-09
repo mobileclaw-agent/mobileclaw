@@ -93,6 +93,21 @@ class PropsBuilder {
         }
         if (required) this.required += name
     }
+
+    /** An array of strings — used for things like a set of weekday names. */
+    fun stringArray(name: String, description: String, required: Boolean = false, enum: List<String>? = null) {
+        entries += name to buildJsonObject {
+            put("type", "array")
+            put("description", description)
+            put("items", buildJsonObject {
+                put("type", "string")
+                if (enum != null) {
+                    put("enum", buildJsonArray { enum.forEach { add(JsonPrimitive(it)) } })
+                }
+            })
+        }
+        if (required) this.required += name
+    }
 }
 
 fun objectSchema(block: PropsBuilder.() -> Unit): JsonObject {
@@ -123,6 +138,11 @@ fun JsonObject.double(key: String, default: Double): Double {
     val prim = this[key]?.jsonPrimitive ?: return default
     return prim.doubleOrNull ?: prim.contentOrNull?.trim()?.toDoubleOrNull() ?: default
 }
+
+fun JsonObject.strList(key: String): List<String> =
+    this[key]?.let { it as? kotlinx.serialization.json.JsonArray }
+        ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+        .orEmpty()
 
 fun JsonObject.bool(key: String, default: Boolean): Boolean {
     val prim = this[key]?.jsonPrimitive ?: return default

@@ -32,6 +32,9 @@ object ToolRegistry {
         Vibrate,
         // Speech
         Speak,
+        // Alarms & timers
+        SetAlarm,
+        SetTimer,
         // Files
         ListFiles,
         ReadFile,

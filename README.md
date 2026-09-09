@@ -55,6 +55,8 @@ validated), `get_local_ips`, `is_hotspot_running`
 
 **Speech** — `speak` (text-to-speech, with language/pitch/rate control)
 
+**Alarms & timers** — `set_alarm` (one-time or repeating, via the user's clock app), `set_timer`
+
 **Files** — `list_files`, `read_file`, `write_file`, `delete_file` — the agent's own durable
 scratch space, jailed to the app's private storage
 
@@ -134,6 +136,10 @@ of them.
 - Requests are not streamed — replies appear when complete.
 - `QUERY_ALL_PACKAGES` backs `list_installed_apps`. It's fine for sideloading; Play Store
   distribution would require justifying or dropping it.
+- `set_alarm` and `set_timer` hand off to the user's installed clock app via the standard
+  `AlarmClock` intents (`com.android.alarm.permission.SET_ALARM`); MobileClaw does not run its
+  own alarm scheduler. If no clock app is installed, or it doesn't implement these intents, the
+  tool reports that plainly instead of silently doing nothing.
 - Cleartext HTTP is permitted, so `web_fetch` can reach a local model server on `127.0.0.1`, a
   LAN box, or an http-only page. From `targetSdk` 28 on Android blocks those by default, which
   surfaced as an opaque network failure while the same URL loaded fine in a browser.
